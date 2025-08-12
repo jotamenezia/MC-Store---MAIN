@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="es-ES">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Widget Inventario Conectado</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #3B82F6;
+            --primary-purple: #8B5CF6;
+            --dark-blue: #1E40AF;
+            --dark-purple: #6D28D9;
+            --bg-dark: #0F172A;
+            --bg-card: rgba(30, 41, 59, 0.4);
+            --border-color: rgba(148, 163, 184, 0.2);
+            --text-primary: #F8FAFC;
+            --text-secondary: #CBD5E1;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #1E293B 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--primary-blue), var(--primary-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .widget-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .stock-monitor {
+            position: relative;
+        }
+
+        .product-info {
+            margin-bottom: 2rem;
+        }
+
+        .product-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .stock-level {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .stock-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-blue);
+        }
+
+        .stock-unit {
+            color: var(--text-secondary);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 12px;
+            background: rgba(148, 163, 184, 0.2);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--danger), var(--warning));
+            border-radius: 6px;
+            transition: width 0.5s ease;
+            width: 25%;
+        }
+
+        .thresholds {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-blue), var(--dark-blue));
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #DC2626);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+        }
+
+        .alert-channels {
+            margin-bottom: 2rem;
+        }
+
+        .channels-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .channel {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem;
+            background: rgba(148, 163, 184, 0.1);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .channel.active {
+            background: linear-gradient(135deg, var(--primary-blue), var(--primary-purple));
+            color: white;
+        }
+
+        .channel-icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        .events-log {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .event {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: rgba(148, 163, 184, 0.05);
+            border-radius: 12px;
+            margin-bottom: 0.5rem;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: slideIn 0.5s ease forwards;
+        }
+
+        .event-time {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            min-width: 80px;
+        }
+
+        .event-message {
+            flex: 1;
+        }
+
+        .event-status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-sent {
+            background: var(--success);
+            color: white;
+        }
+
+        .status-pending {
+            background: var(--warning);
+            color: white;
+        }
+
+        .toast {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            background: linear-gradient(135deg, var(--primary-blue), var(--primary-purple));
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transform: translateX(400px);
+            transition: transform 0.5s ease;
+            z-index: 1000;
+            max-width: 350px;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast-header {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .toast-body {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        @keyframes slideIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @media (max-width: 768px) {
+            .widget-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .channels-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Inventario Conectado</h1>
+            <p>Alertas automáticas de stock en tiempo real</p>
+        </div>
+
+        <div class="widget-grid">
+            <div class="card stock-monitor">
+                <div class="product-info">
+                    <div class="product-name">TAULES - LAM. FOKOS SALE ESPECIALS (M2)</div>
+                    <div class="stock-level">
+                        <span class="stock-number" id="stockLevel">25</span>
+                        <span class="stock-unit">m² disponibles</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="thresholds">
+                        <span>Mínimo: 20 m²</span>
+                        <span>Óptimo: 100 m²</span>
+                    </div>
+                </div>
+
+                <div class="alert-channels">
+                    <h3>Canales de alerta</h3>
+                    <div class="channels-grid">
+                        <div class="channel active" data-channel="whatsapp">
+                            <span class="channel-icon">📱</span>
+                            <span>WhatsApp</span>
+                        </div>
+                        <div class="channel active" data-channel="email">
+                            <span class="channel-icon">📧</span>
+                            <span>Email</span>
+                        </div>
+                        <div class="channel active" data-channel="slack">
+                            <span class="channel-icon">💬</span>
+                            <span>Slack</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn btn-danger" onclick="simulateStockDecrease()">
+                        Simular venta (-10 m²)
+                    </button>
+                    <button class="btn btn-primary" onclick="restockProduct()">
+                        Reponer stock (+50 m²)
+                    </button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Registro de eventos</h3>
+                <div class="events-log" id="eventsLog">
+                    <div class="event">
+                        <div class="event-time">10:30</div>
+                        <div class="event-message">Sistema iniciado - Stock: 25 m²</div>
+                        <div class="event-status status-sent">Activo</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="alertToast">
+        <div class="toast-header">🚨 Alerta de Stock Bajo</div>
+        <div class="toast-body">
+            TAULES - LAM. FOKOS SALE ESPECIALS está por debajo del mínimo (20 m²). 
+            Stock actual: <span id="toastStock">25</span> m²
+        </div>
+    </div>
+
+    <script>
+        let currentStock = 25;
+        const minStock = 20;
+        const maxStock = 100;
+        let eventCounter = 0;
+
+        function updateStockDisplay() {
+            const stockElement = document.getElementById('stockLevel');
+            const progressElement = document.getElementById('progressFill');
+            
+            stockElement.textContent = currentStock;
+            
+            // Calcular porcentaje para la barra de progreso
+            const percentage = Math.min((currentStock / maxStock) * 100, 100);
+            progressElement.style.width = percentage + '%';
+            
+            // Cambiar color según el nivel
+            if (currentStock <= minStock) {
+                progressElement.style.background = 'linear-gradient(90deg, var(--danger), #DC2626)';
+                stockElement.style.color = 'var(--danger)';
+            } else if (currentStock <= minStock * 1.5) {
+                progressElement.style.background = 'linear-gradient(90deg, var(--warning), #D97706)';
+                stockElement.style.color = 'var(--warning)';
+            } else {
+                progressElement.style.background = 'linear-gradient(90deg, var(--success), #059669)';
+                stockElement.style.color = 'var(--primary-blue)';
+            }
+        }
+
+        function addEvent(message, status = 'sent') {
+            const eventsLog = document.getElementById('eventsLog');
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            
+            const eventElement = document.createElement('div');
+            eventElement.className = 'event';
+            eventElement.innerHTML = `
+                <div class="event-time">${timeString}</div>
+                <div class="event-message">${message}</div>
+                <div class="event-status status-${status}">${status === 'sent' ? 'Enviado' : 'Pendiente'}</div>
+            `;
+            
+            eventsLog.insertBefore(eventElement, eventsLog.firstChild);
+            
+            // Limitar a 10 eventos
+            while (eventsLog.children.length > 10) {
+                eventsLog.removeChild(eventsLog.lastChild);
+            }
+        }
+
+        function showToast() {
+            const toast = document.getElementById('alertToast');
+            const toastStock = document.getElementById('toastStock');
+            
+            toastStock.textContent = currentStock;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 5000);
+        }
+
+        function sendAlerts() {
+            const activeChannels = document.querySelectorAll('.channel.active');
+            
+            activeChannels.forEach((channel, index) => {
+                setTimeout(() => {
+                    const channelName = channel.dataset.channel;
+                    let channelDisplay = '';
+                    
+                    switch(channelName) {
+                        case 'whatsapp': channelDisplay = 'WhatsApp'; break;
+                        case 'email': channelDisplay = 'Email'; break;
+                        case 'slack': channelDisplay = 'Slack'; break;
+                    }
+                    
+                    addEvent(`Alerta enviada por ${channelDisplay} - Stock: ${currentStock} m²`, 'sent');
+                }, index * 500);
+            });
+            
+            showToast();
+        }
+
+        function simulateStockDecrease() {
+            const decrease = 10;
+            currentStock = Math.max(0, currentStock - decrease);
+            
+            updateStockDisplay();
+            addEvent(`Venta registrada: -${decrease} m² (Stock: ${currentStock} m²)`, 'sent');
+            
+            if (currentStock <= minStock) {
+                setTimeout(() => {
+                    addEvent(`⚠️ Stock por debajo del mínimo (${minStock} m²)`, 'pending');
+                    sendAlerts();
+                }, 1000);
+            }
+        }
+
+        function restockProduct() {
+            const increase = 50;
+            currentStock = Math.min(maxStock, currentStock + increase);
+            
+            updateStockDisplay();
+            addEvent(`Reposición: +${increase} m² (Stock: ${currentStock} m²)`, 'sent');
+        }
+
+        // Toggle de canales
+        document.querySelectorAll('.channel').forEach(channel => {
+            channel.addEventListener('click', () => {
+                channel.classList.toggle('active');
+            });
+        });
+
+        // Inicializar
+        updateStockDisplay();
+    </script>
+</body>
+</html>
